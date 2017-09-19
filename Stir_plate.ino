@@ -21,13 +21,13 @@ void loop() {
         Serial.println(PWMValue);
         if(PWMValue>75)
         {
-            PORTD=0x10;
-            OCR1B=PWMValue;
+                PORTD=0x10;
+                OCR1B=PWMValue;
         }
-        else   PORTD=0x00;//set pin 4 to LOW
+        else PORTD=0x00;  //set pin 4 to LOW
 
 }
 int Read_Potentiometer()
 {
-  return 0;
+        return 0;
 }
