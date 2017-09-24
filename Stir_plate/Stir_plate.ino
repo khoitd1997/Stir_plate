@@ -6,7 +6,7 @@
 
 //potentiometer must be at A3, hardcoded into the value of the register
 #define PWM_FAN_PIN 10//fans that feed the PWM value to the fans, must be a PWM pin
-#define FAN_ON_OFF_PIN 4//turn on or off the transistor that controls the fan
+#define FAN_ON_OFF_PIN 6//turn on or off the transistor that controls the fan
 
 
 
