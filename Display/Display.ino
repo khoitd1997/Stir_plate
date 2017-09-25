@@ -3,10 +3,11 @@
 #define BUTTON_PIN A0
 #define CHEM1_TIME 2000
 #define CHEM2_TIME 2500
+#define DEBOUNCE_TIME 200
 #include <LiquidCrystal.h>
 
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-int state=0;//the state of the display 0 for the main menu, 1 for manual, 2 for profile mode
+//the state of the display 0 for the main menu, 1 for manual, 2 for profile mode
 //we can afford to use pin 7,8,13
 //use analog pin for voltage division stuffs
 //One button for emergency shutdown or select profile, one button for navigation
@@ -21,9 +22,20 @@ int state=0;//the state of the display 0 for the main menu, 1 for manual, 2 for 
 // 5th >570
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+int check_button(void){//Check for button input
+        unsigned reading=analogRead(BUTTON_PIN);
+        if(reading>900)
+                return 0; //nothing is pressed
+        else if(reading>360)
+                return 2;
+        else if(reading>220)
+                return 1;
+}
+
 void setup() {
         lcd.begin(16, 2);
-        pinMode(A0, INPUT_PULLUP);
+        pinMode(BUTTON_PIN, INPUT_PULLUP);
         Serial.begin(9600);
 }
 
@@ -33,17 +45,28 @@ void loop() {
         // lcd.clear();
 
         // delay(10);//10 is good enough for not noticing tearing
-
-        unsigned button_reading;
-        unsigned long start_stir_time;
-        unsigned long time_stir_left;
+        static int state=0;
+        static unsigned button_reading;
+        static unsigned long start_stir_time;
+        static unsigned long time_stir_left;
+        //Serial.println(analogRead(BUTTON_PIN));
         switch(state) {
         case 0:
+                //add turning off the fan at this state to make sure everything is clean
+                delay(DEBOUNCE_TIME);
                 lcd.clear();
-                lcd.print("Menu Mode:")
+                lcd.setCursor(0,0);
+                lcd.print("1/Manual");
                 lcd.setCursor(0,1);
-                lcd.print("1/Manual 2/Profiles");
-                switch(check_button) {
+                lcd.print("2/Profiles");
+
+
+                while((button_reading=check_button())==0) {
+                        ;
+
+                }
+                //Serial.println(button_reading);
+                switch(button_reading) {
                 case 1:
                         state=1;//1 for manual mode
                         break;
@@ -56,66 +79,53 @@ void loop() {
                 lcd.clear();
                 lcd.setCursor(0,0);
                 lcd.print("Manual Mode");
-                while((button_reading=check_button)!=1) { //press 1 to return to menu
+                delay(DEBOUNCE_TIME);
+                while(!(check_button())) { //press any to return to menu
                         analogWrite(9,random(0,255));//fan control code go here
-                        delay(200);
+                        delay(50);
                 }
                 state=0;
                 break;
         case 2:
                 lcd.clear();
                 lcd.setCursor(0,0);
-                lcd.print("Profile Mode:")
+                lcd.print("Profile Mode:");
                 lcd.setCursor(0,1);
-                lcd.print("Chem 1 Chem 2");
-                while((button_reading=check_button)) {
-                        switch(button_reading) {
-                        case 1:
-                                lcd.clear()
-                                start_stir_time=millis();
-                                while((time_stir_left=(millis()-start_stir_time))<CHEM1_TIME) {
-                                        lcd.clear();
-                                        lcd.setCursor(0,0);
-                                        lcd.print("Time left for 1");
-                                        lcd.setCursor(0,1);
-                                        lcd.print(time_stir_left);
-                                        delay(10);
-                                }
-                                state=0;
-                                break;
-                        case 2:
-                                lcd.clear()
-                                start_stir_time=millis();
-                                while((time_stir_left=(millis()-start_stir_time))<CHEM2_TIME) {
-                                        lcd.clear();
-                                        lcd.setCursor(0,0);
-                                        lcd.print("Time left for 2");
-                                        lcd.setCursor(0,1);
-                                        lcd.print(time_stir_left);
-                                        delay(10);
-                                }
-                                state=0;
-                                break;
-                        }
-
+                lcd.print("1/Chem1 2/Chem2");
+                delay(DEBOUNCE_TIME);
+                while((button_reading=check_button())==0) {//wait for input button
+                        ;
                 }
+                switch(button_reading) {
+                case 1:
+                        lcd.clear();
+                        start_stir_time=millis();
+                        while((time_stir_left=(millis()-start_stir_time))<CHEM1_TIME) {
+                                lcd.clear();
+                                lcd.setCursor(0,0);
+                                lcd.print("Time left for 1");
+                                lcd.setCursor(0,1);
+                                lcd.print((CHEM1_TIME-time_stir_left));
+                                delay(10);
+                        }
+                        state=0;//return to menu when done
+                        break;
+                case 2:
+                        lcd.clear();
+                        start_stir_time=millis();
+                        while((time_stir_left=(millis()-start_stir_time))<CHEM2_TIME) {
+                                lcd.clear();
+                                lcd.setCursor(0,0);
+                                lcd.print("Time left for 2");
+                                lcd.setCursor(0,1);
+                                lcd.print((CHEM2_TIME-time_stir_left));
+                                delay(10);
+                        }
+                        state=0;
+                        break;
+                }
+
+
                 break;
         }
-}
-void check_button(){//wait for input from buttons
-        int reading;
-        while ((reading=analogRead(BUTTON_PIN))>900) {
-                ;
-        }
-
-        if(reading>570)
-                return 5;
-        else if(reading>520)
-                return 4;
-        else if(reading>450)
-                return 3;
-        else if(reading>360)
-                return 2;
-        else if(reading>220)
-                return 1;
 }
