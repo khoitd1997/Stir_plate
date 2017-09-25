@@ -16,19 +16,19 @@ void setup()
         TCCR1B = 0x19; //configure the TCCR1B register on mode of operation, TOP
         OCR1A = 639; // limit by 16 bits, determine the frequency of the output
         OCR1B = 70; // the ratio of OCR1B/OCR1A will set duty cycle
-        DDRD=0x10;// enable the PWM output (you now have a PWM signal on digital pin 10)
+        bit_set(DDRD,BIT(7));
         DDRB=0x04;//enable the digital output on pin 4
-        PORTD=0x10;//set pin 4 to HIGH
+        bit_set(PORTD,BIT(7));
 }
 void loop() {
 
         int PWMValue=map(constrain(Read_Potentiometer(),0,932),0, 932, 50, 400);//map the PWM value into a certain range from the potentiometer value
         if(PWMValue>75)//threshold that the potentiometer will actually impact the fan speed
         {
-                PORTD=0x10;//turn on the plate
+                bit_set(PORTD,BIT(7));//turn on the plate
                 OCR1B=PWMValue;
         }
-        else PORTD=0x00;//turn off the plate
+        else bit_clear(PORTD,BIT(7));//turn off the plate
 
 
 }

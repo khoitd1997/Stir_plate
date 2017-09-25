@@ -1,5 +1,5 @@
 
-#define BUZZER_PIN 9//PWM pin that controls the buzzer
+#define BUZZER_PIN 6//PWM pin that controls the buzzer
 #define TEMPO 65
 #define SONG_LENGTH 50//More beep if bigger number
 #define BEATS 2

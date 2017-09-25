@@ -7,21 +7,21 @@
 
 //header for display
 #define BUTTON_PIN A0
-#define CHEM1_TIME 2000
-#define CHEM2_TIME 2500
+#define CHEM1_TIME 20000
+#define CHEM2_TIME 25000
 #define DEBOUNCE_TIME 200
 #include <LiquidCrystal.h>
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-unsigned check_button(void)
+unsigned check_button(void);
 
 //header for the fan
 //potentiometer must be at A3, hardcoded into the value of the register
 #define PWM_FAN_PIN 10//fans that feed the PWM value to the fans, must be a PWM pin, affect pin 9 too
 //Use pin 7 for turning on and off the fan
-#define CHEM1_SPEED 200//value between 50 and 400 higher the faster
-#define CHEM2_SPEED 100//value between 50 and 400 higher the faster
-int Read_Potentiometer()//Use pin A3
+#define CHEM1_SPEED 200//value between 100 and 400 higher the faster
+#define CHEM2_SPEED 300//value between 100 and 400 higher the faster
+#define POTENTIOMETER_PIN A3
 
 //header for buzzer
 #define BUZZER_PIN 6//PWM pin that controls the buzzer
@@ -34,33 +34,34 @@ int Read_Potentiometer()//Use pin A3
 void play_alarm(void);
 
 void setup() {
+        bit_clear(PORTD,BIT(7));
+        Serial.begin(9600);
         //display
         lcd.begin(16, 2);
         pinMode(BUTTON_PIN, INPUT_PULLUP);
 
         //fan controls
-        TCCR1A = 0x23;//configure the TCCR1A register on mode of operation, TOP
-        TCCR1B = 0x19; //configure the TCCR1B register on mode of operation, TOP
-        OCR1A = 639; // limit by 16 bits, determine the frequency of the output
-        OCR1B = 70; // the ratio of OCR1B/OCR1A will set duty cycle
-        bit_set(DDRD,BIT(7));//enable the output of pin 7
-        bit_set(DDRB, BIT(2));//enable the PWM output on pin 10
-        bit_clear(PORTD,BIT(7));//turn of pin 7
+
 
         //buzzer
         pinMode(BUZZER_PIN, OUTPUT);
 }
 
 void loop() {
+        TCCR1A = 0x23;//configure the TCCR1A register on mode of operation, TOP
+        TCCR1B = 0x19; //configure the TCCR1B register on mode of operation, TOP
+        OCR1A = 639; // limit by 16 bits, determine the frequency of the output
+        OCR1B = 70; // the ratio of OCR1B/OCR1A will set duty cycle
+        bit_set(DDRD,BIT(7));//enable the output of pin 7
+        bit_set(DDRB, BIT(2));//enable the PWM output on pin 10
+        bit_clear(PORTD,BIT(7));//turn off pin 7
         static unsigned state=0;
         static unsigned button_reading;
         static unsigned long start_stir_time;
         static unsigned long time_stir_left;
-
+        bit_clear(PORTD,BIT(7));
         switch(state) {
         case 0:
-                //add turning off the fan at this state to make sure everything is clean
-                PORTD=0x00;
                 delay(DEBOUNCE_TIME);
                 lcd.clear();
                 lcd.setCursor(0,0);
@@ -89,7 +90,7 @@ void loop() {
                 lcd.print("Manual Mode");
                 delay(DEBOUNCE_TIME);
                 while(!(check_button())) { //press any to return to menu
-                        int PWMValue=map(constrain(Read_Potentiometer(),0,932),0, 932, 50, 400);//map the PWM value into a certain range from the potentiometer value
+                        int PWMValue=map(constrain(analogRead(POTENTIOMETER_PIN),0,932),0, 932, 50, 400); //map the PWM value into a certain range from the potentiometer value
                         if(PWMValue>75)//threshold that the potentiometer will actually impact the fan speed
                         {
                                 bit_set(PORTD,BIT(7));//turn on the plate
@@ -97,6 +98,8 @@ void loop() {
                         }
                         else bit_clear(PORTD,BIT(7)); //turn off the plate
                 }
+                OCR1B=20;
+                bit_clear(PORTD,BIT(7));
                 state=0;
                 break;
         case 2:
@@ -125,9 +128,12 @@ void loop() {
                                 lcd.print((CHEM1_TIME-time_stir_left));
                                 lcd.setCursor(5,1);
                                 lcd.print("Exit:1");
+                                delay(50);
                         }
+                        OCR1B=20;
                         bit_clear(PORTD,BIT(7));
-                        play_alarm;
+                        bit_clear(DDRD,BIT(7));
+                        play_alarm();
                         state=0;//return to menu when done
                         break;
                 case 2:
@@ -143,10 +149,12 @@ void loop() {
                                 lcd.print((CHEM2_TIME-time_stir_left));
                                 lcd.setCursor(5,1);
                                 lcd.print("Exit:1");
-                                delay(10);
+                                delay(50);
                         }
+                        OCR1B=20;
                         bit_clear(PORTD,BIT(7));
-                        play_alarm;
+                        bit_clear(DDRD,BIT(7));
+                        play_alarm();
                         state=0;
                         break;
                 }
@@ -168,34 +176,12 @@ unsigned check_button(void){//Check for button input
 
 void play_alarm(void){
 
-        static unsigned int i=0;//doesn't matter if i overflow
+        unsigned i=0;//doesn't matter if i overflow
         while(i<NUM_ARLARM_TO_PLAY) {
-                if(i++%2!=0)
+                if(i++%2!=0) {
+                        Serial.println("It played the music");
                         tone(BUZZER_PIN, FREQUENCY, DURATION);
+                }
                 delay(DURATION+TEMPO/10);
         }
-}
-
-int Read_Potentiometer()
-{
-        //select reference as AVcc with external capacitor at AREF
-        bit_set(ADMUX,BIT(6));
-        bit_clear(ADMUX, BIT(7));
-
-//select ADC 3 or analogpin 3 on the Arduino
-        bit_clear(ADMUX, BIT(3));
-        bit_clear(ADMUX, BIT(2));
-        bit_set(ADMUX, BIT(1));
-        bit_set(ADMUX, BIT(0));
-
-//turn off the auto trigger and then initiate the ADC
-        bit_clear(ADCSRA,BIT(5));
-        bit_set(ADCSRA,BIT(7));
-        bit_set(ADCSRA,BIT(6));//stay high as long as conversion in progress
-
-
-        while(ADSC==0b1) {//check if conversion is done
-        }
-
-        return ADC;
 }
