@@ -40,11 +40,6 @@ void setup() {
 }
 
 void loop() {
-        // lcd.setCursor(0, 0);//first row, first column, row is the 2nd number
-        // int a=analogRead(A0);
-        // lcd.clear();
-
-        // delay(10);//10 is good enough for not noticing tearing
         static unsigned state=0;
         static unsigned button_reading;
         static unsigned long start_stir_time;
