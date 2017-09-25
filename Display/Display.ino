@@ -23,7 +23,7 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-int check_button(void){//Check for button input
+unsigned check_button(void){//Check for button input
         unsigned reading=analogRead(BUTTON_PIN);
         if(reading>900)
                 return 0; //nothing is pressed
@@ -45,7 +45,7 @@ void loop() {
         // lcd.clear();
 
         // delay(10);//10 is good enough for not noticing tearing
-        static int state=0;
+        static unsigned state=0;
         static unsigned button_reading;
         static unsigned long start_stir_time;
         static unsigned long time_stir_left;
@@ -96,16 +96,20 @@ void loop() {
                 while((button_reading=check_button())==0) {//wait for input button
                         ;
                 }
+                delay(DEBOUNCE_TIME);
                 switch(button_reading) {
                 case 1:
                         lcd.clear();
                         start_stir_time=millis();
-                        while((time_stir_left=(millis()-start_stir_time))<CHEM1_TIME) {
+                        //button 1 for emergency exit
+                        while((time_stir_left=(millis()-start_stir_time))<CHEM1_TIME && check_button()!=1) {
                                 lcd.clear();
                                 lcd.setCursor(0,0);
                                 lcd.print("Time left for 1");
                                 lcd.setCursor(0,1);
                                 lcd.print((CHEM1_TIME-time_stir_left));
+                                lcd.setCursor(5,1);
+                                lcd.print("Exit:1");
                                 delay(10);
                         }
                         state=0;//return to menu when done
@@ -113,12 +117,14 @@ void loop() {
                 case 2:
                         lcd.clear();
                         start_stir_time=millis();
-                        while((time_stir_left=(millis()-start_stir_time))<CHEM2_TIME) {
+                        while((time_stir_left=(millis()-start_stir_time))<CHEM2_TIME && check_button()!=1) {
                                 lcd.clear();
                                 lcd.setCursor(0,0);
                                 lcd.print("Time left for 2");
                                 lcd.setCursor(0,1);
                                 lcd.print((CHEM2_TIME-time_stir_left));
+                                lcd.setCursor(5,1);
+                                lcd.print("Exit:1");
                                 delay(10);
                         }
                         state=0;
