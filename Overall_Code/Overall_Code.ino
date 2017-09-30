@@ -3,7 +3,7 @@
 #define bit_set(p,m) ((p) |= (m))
 #define bit_clear(p,m) ((p) &= ~(m))
 #define BIT(x) (0x01 << (x))
-
+From <http://www.avrfreaks.net/forum/tut-c-bit-manipulation-aka-programming-101?name=PNphpBB2&file=viewtopic&t=37871>
 
 //header for display
 #define BUTTON_PIN A0
